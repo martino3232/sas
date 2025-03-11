@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generar Excel</title>
+    <script>
+        function iniciarProceso() {
+            let numero = document.getElementById("numero").value;
+            if (numero.length < 7 || numero.length > 8 || isNaN(numero)) {
+                alert("Ingrese un número válido de 7 u 8 cifras.");
+                return;
+            }
+
+            // Enviar solicitud al servidor
+            fetch('/procesar', {
+                method: 'POST',
+                body: new URLSearchParams({ "numero": numero }),
+                headers: { "Content-Type": "application/x-www-form-urlencoded" }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    iniciarContador(3, 30);
+                } else {
+                    alert(data.error);
+                }
+            });
+        }
+
+        function iniciarContador(horas, minutos) {
+            let totalSegundos = (horas * 60 + minutos) * 60;
+            let contador = document.getElementById("contador");
+
+            let interval = setInterval(() => {
+                let h = Math.floor(totalSegundos / 3600);
+                let m = Math.floor((totalSegundos % 3600) / 60);
+                let s = totalSegundos % 60;
+
+                contador.innerHTML = `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                totalSegundos--;
+
+                if (totalSegundos < 0) {
+                    clearInterval(interval);
+                    document.getElementById("descargarBtn").style.display = "block";
+                }
+            }, 1000);
+        }
+
+        function descargarArchivo() {
+            window.location.href = "/descargar";
+        }
+    </script>
+</head>
+<body>
+    <h1>Generador de Excel</h1>
+    <p>Ingrese un número de 7 u 8 cifras y espere 3 horas y 30 minutos.</p>
+
+    <input type="text" id="numero" placeholder="Ingrese número...">
+    <button onclick="iniciarProceso()">Iniciar</button>
+
+    <h2>Tiempo restante:</h2>
+    <p id="contador">3:30:00</p>
+
+    <button id="descargarBtn" style="display:none;" onclick="descargarArchivo()">Descargar Archivo</button>
+</body>
+</html>
