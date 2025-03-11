@@ -21,15 +21,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    iniciarContador(3, 30);
+                    iniciarContador(0, 0, 10);  // Ahora la espera es de 10 segundos
                 } else {
                     alert(data.error);
                 }
             });
         }
 
-        function iniciarContador(horas, minutos) {
-            let totalSegundos = (horas * 60 + minutos) * 60;
+        function iniciarContador(horas, minutos, segundos) {
+            let totalSegundos = (horas * 3600) + (minutos * 60) + segundos;
             let contador = document.getElementById("contador");
 
             let interval = setInterval(() => {
@@ -54,13 +54,13 @@
 </head>
 <body>
     <h1>Generador de Excel</h1>
-    <p>Ingrese un número de 7 u 8 cifras y espere 3 horas y 30 minutos.</p>
+    <p>Ingrese un número de 7 u 8 cifras y espere **10 segundos**.</p>
 
     <input type="text" id="numero" placeholder="Ingrese número...">
     <button onclick="iniciarProceso()">Iniciar</button>
 
     <h2>Tiempo restante:</h2>
-    <p id="contador">3:30:00</p>
+    <p id="contador">0:00:10</p>
 
     <button id="descargarBtn" style="display:none;" onclick="descargarArchivo()">Descargar Archivo</button>
 </body>
