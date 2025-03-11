@@ -21,7 +21,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    iniciarContador(0, 0, 10);  // Ahora la espera es de 10 segundos
+                    iniciarContador(0, 0, 30);  // Ahora esperamos 30 segundos en el frontend
                 } else {
                     alert(data.error);
                 }
@@ -54,13 +54,13 @@
 </head>
 <body>
     <h1>Generador de Excel</h1>
-    <p>Ingrese un número de 7 u 8 cifras y espere **10 segundos**.</p>
+    <p>Ingrese un número de 7 u 8 cifras y espere **30 segundos**.</p>
 
     <input type="text" id="numero" placeholder="Ingrese número...">
     <button onclick="iniciarProceso()">Iniciar</button>
 
     <h2>Tiempo restante:</h2>
-    <p id="contador">0:00:10</p>
+    <p id="contador">0:00:30</p>
 
     <button id="descargarBtn" style="display:none;" onclick="descargarArchivo()">Descargar Archivo</button>
 </body>
