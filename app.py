@@ -85,7 +85,7 @@ def procesar():
     thread = threading.Thread(target=generar_excel, args=(int(user_number),), daemon=True)
     thread.start()
 
-    return jsonify({"message": "Proceso iniciado. Espere 30 segundos mientras se genera el archivo.", "success": True})
+    return jsonify({"message": "Proceso iniciado. Espere 3:00 hs mientras se genera el archivo.", "success": True})
 
 # Ruta para descargar el archivo
 @app.route('/descargar')
