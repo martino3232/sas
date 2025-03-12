@@ -11,7 +11,7 @@
                 alert("Ingrese un número válido de 7 u 8 cifras.");
                 return;
             }
-
+    
             // Enviar solicitud al servidor
             fetch('/procesar', {
                 method: 'POST',
@@ -21,25 +21,25 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    iniciarContador(0, 0, 30);  // Ahora esperamos 30 segundos en el frontend
+                    iniciarContador(0, 0, 30);  // Ahora esperamos 30 segundos
                 } else {
                     alert(data.error);
                 }
             });
         }
-
+    
         function iniciarContador(horas, minutos, segundos) {
             let totalSegundos = (horas * 3600) + (minutos * 60) + segundos;
             let contador = document.getElementById("contador");
-
+    
             let interval = setInterval(() => {
                 let h = Math.floor(totalSegundos / 3600);
                 let m = Math.floor((totalSegundos % 3600) / 60);
                 let s = totalSegundos % 60;
-
+    
                 contador.innerHTML = `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
                 totalSegundos--;
-
+    
                 if (totalSegundos < 0) {
                     clearInterval(interval);
                     document.getElementById("descargarBtn").style.display = "block";
@@ -48,13 +48,31 @@
         }
 
         function descargarArchivo() {
-            window.location.href = "/descargar";
+            fetch('/descargar')
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.error); });
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                let url = window.URL.createObjectURL(blob);
+                let a = document.createElement("a");
+                a.href = url;
+                a.download = "CABA_Resultado_Sin_Index.xlsx";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            })
+            .catch(error => {
+                alert("Error al descargar el archivo: " + error.message);
+            });
         }
     </script>
 </head>
 <body>
     <h1>Generador de Excel</h1>
-    <p>Ingrese un número de 7 u 8 cifras y espere **30 segundos**.</p>
+    <p>Ingrese un número de 7 u 8 cifras y espere <strong>30 segundos</strong>.</p>
 
     <input type="text" id="numero" placeholder="Ingrese número...">
     <button onclick="iniciarProceso()">Iniciar</button>

@@ -5,20 +5,33 @@ import random
 import threading
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
 
-# Ruta del archivo de entrada (asegúrate de subirlo en Render)
-file_path = "CABA_Enriquecido.xlsx"
-output_path = "/tmp/CABA_Resultado_Sin_Index.xlsx"
+# Obtener el directorio donde está `app.py`
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Definir rutas de archivos usando `BASE_DIR`
+file_path = os.path.join(BASE_DIR, "CABA_Enriquecido.xlsx")
+output_path = os.path.join(BASE_DIR, "CABA_Resultado_Sin_Index.xlsx")
+
+# Listas de nombres argentinos y parentescos
+nombres_argentinos = [
+    "Juan", "María", "Carlos", "Sofía", "Martín", "Lucía", "Joaquín", "Valentina",
+    "Gonzalo", "Camila", "Federico", "Florencia", "Leandro", "Agustina"
+]
+parentescos = ["HIJO/A", "CÓNYUGE", "SOBRINO/A", "PADRE/MADRE", "TÍO/A", "PRIMO/A"]
+
+# Función para obtener el apellido (primer elemento del nombre)
+def get_apellido(nombre):
+    if pd.notna(nombre) and isinstance(nombre, str):
+        return nombre.split()[0]  # Tomamos el primer elemento del nombre como apellido
+    return "Pérez"  # Default si no hay nombre
 
 # Función para generar el Excel
 def generar_excel(user_number):
     print("🟢 Iniciando generación de archivo...")
-    start_time = time.time()  # Guardamos el tiempo de inicio
 
-    # Simulación de espera (puede tardar más de 10s dependiendo del tamaño del archivo)
-    time.sleep(30)  # Ahora esperamos 30 segundos antes de generar el archivo
-
+    # Verificar que el archivo original existe
     if not os.path.exists(file_path):
         print("🔴 ERROR: El archivo de entrada no existe en el servidor.")
         return
@@ -28,34 +41,35 @@ def generar_excel(user_number):
     try:
         df = pd.read_excel(file_path)
 
-        # Seleccionar 4000 filas aleatorias del archivo
-        df_sampled = df.sample(n=min(4000, len(df)), random_state=random.randint(1, 10000))
+        # Verificar que haya suficientes filas para tomar 4000
+        n_rows = min(4000, len(df))
+        df_sampled = df.sample(n=n_rows, random_state=random.randint(1, 10000))
 
-        # Listas de nombres argentinos y parentescos
-        nombres_argentinos = ["Juan", "María", "Carlos", "Sofía", "Martín", "Lucía"]
-        parentescos = ["HIJO/A", "CÓNYUGE", "SOBRINO/A", "PADRE/MADRE", "TÍO/A", "PRIMO/A"]
+        # **Tomamos la primera columna como nombres**
+        col_nombre = df_sampled.columns[0]  # Primera columna es el nombre
+        print(f"🟢 Usando la columna '{col_nombre}' para generar apellidos.")
 
-        # Función para obtener un apellido
-        def get_apellido(nombre):
-            if pd.notna(nombre):
-                return nombre.split()[-1]  # Última palabra como apellido
-            return "Pérez"
+        # **Agregar las columnas de familiares**
+        df_sampled["Familiar 1"] = [random.choice(parentescos) for _ in range(n_rows)]
+        df_sampled["Nombre 1"] = [random.choice(nombres_argentinos) + " " + get_apellido(nombre) for nombre in df_sampled[col_nombre]]
+        df_sampled["Familiar 2"] = [random.choice(parentescos) for _ in range(n_rows)]
+        df_sampled["Nombre 2"] = [random.choice(nombres_argentinos) + " " + get_apellido(nombre) for nombre in df_sampled[col_nombre]]
 
-        # Agregar columnas de familiares
-        df_sampled["Familiar 1"] = [random.choice(parentescos) for _ in range(len(df_sampled))]
-        df_sampled["Nombre 1"] = [random.choice(nombres_argentinos) + " " + get_apellido(nombre) for nombre in df_sampled.iloc[:, 1]]
-        df_sampled["Familiar 2"] = [random.choice(parentescos) for _ in range(len(df_sampled))]
-        df_sampled["Nombre 2"] = [random.choice(nombres_argentinos) + " " + get_apellido(nombre) for nombre in df_sampled.iloc[:, 1]]
+        # Verificar que las columnas nuevas se agregaron
+        print(f"📊 Columnas después de agregar familiares: {df_sampled.columns.tolist()}")
 
-        # Guardamos en /tmp/
+        # Guardar el archivo
         df_sampled.to_excel(output_path, index=False)
 
-        end_time = time.time()  # Tiempo final
-        print(f"✅ Archivo generado en {round(end_time - start_time, 2)} segundos")
-        print(f"✅ Archivo guardado en: {output_path}")
+        print(f"✅ Archivo generado correctamente en: {output_path}")
 
     except Exception as e:
-        print(f"🔴 ERROR al procesar el archivo: {e}")
+        print(f"🔴 ERROR al generar el archivo: {e}")
+
+# Ruta para la página principal
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 # Ruta para iniciar el procesamiento
 @app.route('/procesar', methods=['POST'])
@@ -67,18 +81,21 @@ def procesar():
 
     print(f"🟢 Proceso iniciado por el usuario: {user_number}")
 
+    # Ejecutar la generación del archivo en un hilo separado
     thread = threading.Thread(target=generar_excel, args=(int(user_number),), daemon=True)
     thread.start()
 
-    return jsonify({"message": "Proceso iniciado. Espere al menos 30 segundos.", "success": True})
+    return jsonify({"message": "Proceso iniciado. Espere 30 segundos mientras se genera el archivo.", "success": True})
 
 # Ruta para descargar el archivo
 @app.route('/descargar')
 def descargar():
+    print(f"🔍 Intentando descargar desde: {output_path}")
+
     if not os.path.exists(output_path):
         print("🔴 ERROR: Archivo no encontrado al intentar descargar.")
-        return jsonify({"error": "El archivo no existe. Espere unos segundos más y vuelva a intentar."}), 404
-
+        return jsonify({"error": "El archivo no existe. Intente generar el archivo primero."}), 404
+    
     print("🟢 Enviando archivo para descarga...")
     return send_file(output_path, as_attachment=True)
 
